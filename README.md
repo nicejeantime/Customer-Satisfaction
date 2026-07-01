@@ -26,3 +26,4 @@
 각 폴더의 상세 사용법은 아래 문서를 참고하세요.
 - [webapp/이용매뉴얼.md](webapp/이용매뉴얼.md) — 설계 마법사 사용법
 - [webapp/gsurvey/설정가이드.md](webapp/gsurvey/설정가이드.md) — 응답 수집 웹앱 배포법
+- [명령어_모음집.md](명령어_모음집.md) — 비개발자용: GitHub/Vercel 배포에 필요한 명령어와 절차 모음
