@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="UTF-8">
+<style>
+  :root{
+    /* BIZ PC Platform Design System */
+    --accent:#3366FF; --accent-light:#F4F9FF; --accent-hover:#ABC1D1;
+    --bg:#F7F7F7; --card:#FFFFFF; --border:#DDDDDD;
+    --text:#191919; --muted:#595959; --placeholder:#949494;
+    --error:#F4651E; --brand-yellow:#FEE500;
+    --font-family:system-ui,-apple-system,'Helvetica Neue','Apple SD Gothic Neo','Segoe UI',Roboto,Arial,'NotoSans','Open Sans','Malgun Gothic','맑은 고딕',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:var(--font-family);
+    background:var(--bg); color:var(--text);
+  }
+  .wrap{max-width:720px;margin:0 auto;padding:28px 20px 80px;}
+  h1,h2,h3{font-family:inherit;font-weight:700;letter-spacing:-0.01em;margin:0 0 4px;}
+  h1{font-size:20px;line-height:29px;}
+  h2{font-size:18px;line-height:26px;}
+  h3{font-size:14px;line-height:20px;}
+  .subtitle{color:var(--muted);font-size:13px;margin-bottom:18px;}
+  .banner{
+    background:var(--accent-light);border:1px solid var(--accent-hover);border-radius:10px;padding:12px 16px;
+    font-size:13.5px;margin-bottom:20px;display:flex;justify-content:space-between;align-items:center;gap:10px;
+  }
+  .banner b{font-size:14px;}
+  .banner input{border:1px solid var(--border);border-radius:6px;padding:6px 8px;font-size:13px;}
+  .steps{display:flex;gap:6px;margin-bottom:20px;}
+  .step-dot{flex:1;height:6px;border-radius:4px;background:var(--border);}
+  .step-dot.active{background:var(--accent);}
+  .step-dot.done{background:var(--accent-hover);}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;}
+  .hint{color:var(--muted);font-size:12.5px;margin-bottom:18px;}
+  .service-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  .service-card{border:1.5px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;}
+  .service-card:hover{border-color:var(--accent-hover);}
+  .service-card.selected{border-color:var(--accent);background:var(--accent-light);}
+  .service-card .name{font-weight:700;font-size:14px;}
+  .score-item{border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;background:var(--bg);}
+  .score-item .sname{font-weight:600;font-size:13.5px;}
+  .score-item .sdetail{color:var(--placeholder);font-size:12px;margin:2px 0 10px;}
+  .scale{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+  .scale .scale-label{font-size:11px;color:var(--placeholder);}
+  .scale label{
+    display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:50%;
+    border:1.5px solid var(--border);cursor:pointer;font-size:13px;font-weight:600;margin:0;
+  }
+  .scale input{position:absolute;opacity:0;width:0;height:0;}
+  .scale input:checked + span{display:none;}
+  .scale label.checked{background:var(--accent);color:#fff;border-color:var(--accent);}
+  textarea{
+    width:100%;padding:10px;border:1px solid var(--border);border-radius:8px;font-size:14px;
+    font-family:inherit;min-height:80px;resize:vertical;
+  }
+  label.field-label{display:block;font-size:13px;font-weight:600;margin:14px 0 6px;}
+  label.field-label:first-child{margin-top:0;}
+  .btn-row{display:flex;justify-content:space-between;margin-top:26px;}
+  button.nav{border:none;border-radius:8px;padding:11px 20px;font-size:14px;font-weight:600;cursor:pointer;}
+  button.primary{background:var(--accent);color:#fff;}
+  button.primary:disabled{background:#F5F5F5;color:var(--placeholder);cursor:not-allowed;}
+  button.secondary{background:#EEEEEE;color:var(--text);}
+  .error{color:var(--error);font-size:12.5px;margin-top:10px;}
+  .done-box{text-align:center;padding:40px 20px;}
+  .done-box .check{font-size:40px;margin-bottom:10px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>운영 만족도 조사</h1>
+  <div class="subtitle">평소 협업해 주셔서 감사합니다. 최근 운영 서비스에 대한 솔직한 의견 부탁드립니다.</div>
+  <div class="hint" id="periodInfo" style="margin-bottom:18px;"></div>
+  <div class="banner" id="banner"></div>
+  <div class="steps" id="stepsBar"></div>
+  <div class="card" id="stepArea"></div>
+</div>
+
+<script>
+const MODULES_DATA = <?!= modulesJson ?>;
+const SERVICE_LABELS = <?!= labelsJson ?>;
+const CLIENT_NAME = <?!= JSON.stringify(clientName) ?>;
+const PRESET_TYPE = <?!= JSON.stringify(presetType) ?>;
+
+const state = {
+  clientNameInput: CLIENT_NAME || '',
+  serviceType: (PRESET_TYPE && MODULES_DATA[PRESET_TYPE]) ? PRESET_TYPE : null,
+  scores: {},
+  sectionComment: '',
+  strengths: '',
+  improvements: '',
+  relationship: null,
+};
+
+let step = state.serviceType ? 1 : 0;
+const TOTAL_STEPS = 3;
+
+function getHalfYearLabel(date){
+  const d = date || new Date();
+  const y = d.getFullYear();
+  const isFirstHalf = d.getMonth() < 6; // 0~5월 = 1~6월
+  const half = isFirstHalf ? '상반기' : '하반기';
+  const start = isFirstHalf ? `${y}-01-01` : `${y}-07-01`;
+  const end = isFirstHalf ? `${y}-06-30` : `${y}-12-31`;
+  return { half, start, end, text: `이번 조사는 ${y}년 ${half}(${start} ~ ${end}) 운영 성과에 대한 평가입니다.` };
+}
+
+document.getElementById('periodInfo').textContent = getHalfYearLabel().text;
+
+function el(html){ const d=document.createElement('div'); d.innerHTML=html; return d.firstElementChild; }
+
+function renderBanner(){
+  const b = document.getElementById('banner');
+  if(CLIENT_NAME){
+    b.innerHTML = `<div><b>고객사</b>: ${CLIENT_NAME}</div>`;
+  } else {
+    b.innerHTML = `<div>고객사명을 입력해 주세요</div><input type="text" id="in_clientName" placeholder="예: 한국 암웨이" value="${state.clientNameInput}" oninput="state.clientNameInput=this.value">`;
+  }
+}
+
+function renderStepsBar(){
+  const bar = document.getElementById('stepsBar');
+  bar.innerHTML = '';
+  const idx = step > TOTAL_STEPS-1 ? TOTAL_STEPS-1 : step;
+  for(let i=0;i<TOTAL_STEPS;i++){
+    const dot = el('<div class="step-dot"></div>');
+    if(i<idx) dot.classList.add('done');
+    if(i===idx) dot.classList.add('active');
+    bar.appendChild(dot);
+  }
+}
+
+function goStep(n){ step = n; render(); }
+
+function render(){
+  renderBanner();
+  renderStepsBar();
+  const area = document.getElementById('stepArea');
+  area.innerHTML = '';
+  if(step===0) area.appendChild(renderStep0());
+  else if(step===1) area.appendChild(renderStep1());
+  else if(step===2) area.appendChild(renderStep2());
+  else area.appendChild(renderDone());
+}
+
+function renderStep0(){
+  const c = el('<div></div>');
+  let cards = Object.keys(MODULES_DATA).map(key=>{
+    const sel = state.serviceType===key ? 'selected' : '';
+    return `<div class="service-card ${sel}" onclick="selectService('${key}')">
+      <div class="name">${SERVICE_LABELS[key]}</div>
+    </div>`;
+  }).join('');
+  c.innerHTML = `
+    <h2>평가 대상 서비스 형태를 선택해 주세요</h2>
+    <div class="hint">해당하는 서비스 형태를 하나 선택하세요.</div>
+    <div class="service-grid">${cards}</div>
+    <div class="error" id="err0"></div>
+    <div class="btn-row"><span></span><button class="nav primary" onclick="step0Next()">다음</button></div>
+  `;
+  return c;
+}
+
+function selectService(key){
+  state.serviceType = key;
+  render();
+}
+
+function step0Next(){
+  if(!state.serviceType){
+    document.getElementById('err0').textContent = '서비스 형태를 선택해 주세요.';
+    return;
+  }
+  goStep(1);
+}
+
+function renderStep1(){
+  const c = el('<div></div>');
+  const items = MODULES_DATA[state.serviceType];
+  let itemsHtml = items.map((it, idx)=>{
+    const current = state.scores[it.name];
+    let scale = '';
+    for(let v=1; v<=5; v++){
+      const checked = current===v ? 'checked' : '';
+      scale += `<label class="${checked?'checked':''}" onclick="setScore('${it.name.replace(/'/g,"\\'")}', ${v}, this)">${v}<input type="radio" name="s_${idx}" ${checked}></label>`;
+    }
+    return `<div class="score-item">
+      <div class="sname">${it.name}</div>
+      <div class="sdetail">${it.detail}</div>
+      <div class="scale"><span class="scale-label">매우 미흡</span>${scale}<span class="scale-label">매우 우수</span></div>
+    </div>`;
+  }).join('');
+
+  c.innerHTML = `
+    <h2>[${SERVICE_LABELS[state.serviceType]}] 항목별 평가</h2>
+    <div class="hint">각 항목을 1(매우 미흡)~5(매우 우수)로 평가해 주세요.</div>
+    ${itemsHtml}
+    <label class="field-label">이 영역에 대한 추가 의견 (선택)</label>
+    <textarea id="in_sectionComment" oninput="state.sectionComment=this.value">${state.sectionComment}</textarea>
+    <div class="error" id="err1"></div>
+    <div class="btn-row">
+      <button class="nav secondary" onclick="goStep(${PRESET_TYPE ? 1 : 0})" ${PRESET_TYPE ? 'style="visibility:hidden"' : ''}>이전</button>
+      <button class="nav primary" onclick="step1Next()">다음</button>
+    </div>
+  `;
+  return c;
+}
+
+function setScore(name, value, labelEl){
+  state.scores[name] = value;
+  const row = labelEl.parentElement;
+  row.querySelectorAll('label').forEach(l=>l.classList.remove('checked'));
+  labelEl.classList.add('checked');
+}
+
+function step1Next(){
+  const items = MODULES_DATA[state.serviceType];
+  const missing = items.filter(it => state.scores[it.name] === undefined);
+  if(missing.length){
+    document.getElementById('err1').textContent = `아직 평가하지 않은 항목이 ${missing.length}개 있습니다.`;
+    return;
+  }
+  goStep(2);
+}
+
+function renderStep2(){
+  const c = el('<div></div>');
+  let scaleHtml = '';
+  for(let v=1; v<=5; v++){
+    const checked = state.relationship===v ? 'checked' : '';
+    scaleHtml += `<label class="${checked?'checked':''}" onclick="setRelationship(${v}, this)">${v}<input type="radio" name="rel" ${checked}></label>`;
+  }
+  c.innerHTML = `
+    <h2>종합의견</h2>
+    <label class="field-label">강점 (Keep)</label>
+    <textarea id="in_strengths" oninput="state.strengths=this.value">${state.strengths}</textarea>
+    <label class="field-label">개선점 (Improve)</label>
+    <textarea id="in_improvements" oninput="state.improvements=this.value">${state.improvements}</textarea>
+    <label class="field-label">재계약/추천 의향 (1: 전혀 그렇지 않다 ~ 5: 매우 그렇다)</label>
+    <div class="scale">${scaleHtml}</div>
+    <div class="error" id="err2"></div>
+    <div class="btn-row">
+      <button class="nav secondary" onclick="goStep(1)">이전</button>
+      <button class="nav primary" id="submitBtn" onclick="submitForm()">제출</button>
+    </div>
+  `;
+  return c;
+}
+
+function setRelationship(v, labelEl){
+  state.relationship = v;
+  const row = labelEl.parentElement;
+  row.querySelectorAll('label').forEach(l=>l.classList.remove('checked'));
+  labelEl.classList.add('checked');
+}
+
+function submitForm(){
+  const clientName = CLIENT_NAME || state.clientNameInput.trim();
+  if(!clientName){
+    document.getElementById('err2').textContent = '고객사명이 비어 있습니다. 상단 배너에서 입력해 주세요.';
+    return;
+  }
+  if(!state.relationship){
+    document.getElementById('err2').textContent = '재계약/추천 의향을 선택해 주세요.';
+    return;
+  }
+  const payload = {
+    clientName: clientName,
+    serviceType: state.serviceType,
+    evalPeriod: getHalfYearLabel().text,
+    scores: state.scores,
+    sectionComment: state.sectionComment,
+    strengths: state.strengths,
+    improvements: state.improvements,
+    relationship: state.relationship,
+  };
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = '제출 중...';
+
+  if(typeof google !== 'undefined' && google.script && google.script.run){
+    google.script.run
+      .withSuccessHandler(()=>{ goStep(3); })
+      .withFailureHandler((err)=>{
+        btn.disabled = false;
+        btn.textContent = '제출';
+        document.getElementById('err2').textContent = '제출 중 오류가 발생했습니다: ' + (err && err.message ? err.message : err);
+      })
+      .submitResponse(payload);
+  } else {
+    alert('이 페이지는 배포된 웹앱 URL에서 열어야 제출이 정상 동작합니다. (로컬 미리보기에서는 제출이 비활성화됩니다)');
+    btn.disabled = false;
+    btn.textContent = '제출';
+  }
+}
+
+function renderDone(){
+  const c = el('<div></div>');
+  c.innerHTML = `
+    <div class="done-box">
+      <div class="check">✅</div>
+      <h2>제출이 완료되었습니다</h2>
+      <div class="hint">소중한 의견 감사합니다.</div>
+    </div>
+  `;
+  return c;
+}
+
+render();
+</script>
+</body>
+</html>

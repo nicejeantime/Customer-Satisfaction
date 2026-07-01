@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__claude_ai_Figma__get_design_context",
+      "mcp__claude_ai_Figma__get_screenshot"
+    ],
+    "additionalDirectories": [
+      "/Users/luna.lovegood/Desktop/AI Native/Customer Satisfaction /webapp"
+    ]
+  }
+}

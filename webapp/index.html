@@ -1,0 +1,644 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>디케이테크인 고객 만족도 조사</title>
+<style>
+  :root{
+    /* BIZ PC Platform Design System */
+    --accent:#3366FF; --accent-light:#F4F9FF; --accent-hover:#ABC1D1;
+    --bg:#F7F7F7; --card:#FFFFFF; --border:#DDDDDD;
+    --text:#191919; --muted:#595959; --placeholder:#949494;
+    --error:#F4651E;
+    --font-family:system-ui,-apple-system,'Helvetica Neue','Apple SD Gothic Neo','Segoe UI',Roboto,Arial,'NotoSans','Open Sans','Malgun Gothic','맑은 고딕',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; font-family:var(--font-family);
+    background:var(--bg); color:var(--text);
+  }
+  .wrap{max-width:840px;margin:0 auto;padding:32px 20px 110px;}
+  h1{font-size:20px;line-height:29px;font-weight:700;margin:0 0 4px;}
+  .subtitle{color:var(--muted);font-size:13px;margin-bottom:24px;}
+  .steps{margin-bottom:20px;}
+  .step-counter{font-size:12px;color:var(--muted);font-weight:700;letter-spacing:.02em;margin-bottom:8px;}
+  .step-dots{display:flex;gap:6px;}
+  .step-dot{flex:1;height:6px;border-radius:4px;background:var(--border);}
+  .step-dot.active{background:var(--accent);}
+  .step-dot.done{background:var(--accent-hover);}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:28px;}
+  .card h2{font-size:18px;line-height:26px;font-weight:700;margin:0 0 4px;}
+  .card h3{font-size:13px;line-height:18px;font-weight:700;margin:20px 0 10px;}
+  .card h3:first-of-type{margin-top:0;}
+  .card .hint{color:var(--muted);font-size:12.5px;margin-bottom:20px;}
+  .wizard-footer{
+    position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--border);
+    padding:14px 20px;box-shadow:0 -2px 10px rgba(0,0,0,.05);z-index:10;
+  }
+  .wizard-footer-inner{max-width:840px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;}
+  label{display:block;font-size:13px;font-weight:600;margin:14px 0 6px;}
+  input[type=text],input[type=date],input[type=number],select,textarea{
+    width:100%;padding:9px 10px;border:1px solid var(--border);border-radius:8px;font-size:14px;
+    font-family:inherit;background:#fff;
+  }
+  .row2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px;}
+  .check-row{display:flex;align-items:center;gap:8px;margin-top:16px;}
+  .check-row.tight{margin-top:6px;}
+  .check-row input{width:auto;}
+  .check-row label{margin:0;font-weight:500;}
+  .label-hint{font-weight:400;color:var(--muted);}
+  .inline-row{display:flex;gap:8px;}
+  .inline-row input{flex:1;}
+  .inline-row button{white-space:nowrap;}
+  .url-hint{margin-top:6px;margin-bottom:0;}
+  .signature{margin-top:24px;}
+  .service-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:4px;}
+  .service-card{
+    border:1.5px solid var(--border);border-radius:10px;padding:14px;cursor:pointer;transition:.12s;
+  }
+  .service-card:hover{border-color:var(--accent-hover);}
+  .service-card.selected{border-color:var(--accent);background:var(--accent-light);}
+  .service-card .name{font-weight:700;font-size:14px;}
+  .service-card .desc{color:var(--muted);font-size:12px;margin-top:4px;}
+  .option-item{
+    display:flex;gap:10px;align-items:flex-start;border:1px solid var(--border);
+    border-radius:8px;padding:12px;margin-bottom:10px;background:var(--bg);
+  }
+  .option-item input{width:auto;margin-top:2px;}
+  .option-item .oname{font-weight:600;font-size:13.5px;}
+  .option-item .odesc{color:var(--placeholder);font-size:12px;margin-top:2px;}
+  .badge{display:inline-block;font-size:10.5px;background:var(--accent-light);color:var(--accent);border-radius:5px;padding:1px 6px;margin-left:6px;font-weight:600;}
+  .weight-row{display:flex;align-items:center;gap:12px;margin-bottom:12px;}
+  .weight-row .wlabel{width:110px;font-size:13px;font-weight:600;}
+  .weight-row input{width:90px;}
+  .sum-indicator{font-size:13px;margin-top:6px;font-weight:600;}
+  .sum-ok{color:#1a8f45;}
+  .sum-bad{color:var(--error);}
+  .preset-btn{
+    background:#fff;border:1px solid var(--accent);color:var(--accent);border-radius:7px;
+    padding:6px 12px;font-size:12.5px;cursor:pointer;margin-top:8px;
+  }
+  button.nav{
+    border:none;border-radius:8px;padding:11px 20px;font-size:14px;font-weight:600;cursor:pointer;
+  }
+  button.primary{background:var(--accent);color:#fff;}
+  button.primary:disabled{background:#F5F5F5;color:var(--placeholder);cursor:not-allowed;}
+  button.secondary{background:#EEEEEE;color:var(--text);}
+  .error{color:var(--error);font-size:12.5px;margin-top:10px;}
+  table{width:100%;border-collapse:collapse;margin:14px 0;font-size:13px;}
+  th,td{border:1px solid var(--border);padding:7px 9px;text-align:left;}
+  th{background:var(--bg);}
+  .result-actions{display:flex;gap:10px;margin-bottom:18px;flex-wrap:wrap;}
+  .result-actions button{
+    background:#fff;border:1px solid var(--border);border-radius:8px;padding:9px 14px;
+    font-size:13px;cursor:pointer;font-weight:600;
+  }
+  .result-actions button.primary{background:var(--accent);color:#fff;border-color:var(--accent);}
+  .preview{border:1px solid var(--border);border-radius:10px;padding:20px;background:#fff;}
+  .preview h2{font-size:18px;line-height:26px;font-weight:700;margin:0 0 4px;}
+  .preview h3{font-size:14px;line-height:20px;font-weight:700;margin:20px 0 4px;}
+  .preview h3:first-child{margin-top:0;}
+  .grade-list{font-size:13px;line-height:1.9;}
+  @media print{
+    .no-print{display:none !important;}
+    body{background:#fff;}
+    .card,.preview{border:none;padding:0;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>디케이테크인 고객 만족도 조사</h1>
+  <div class="subtitle">선택만 하면 서비스 형태에 맞는 만족도 평가표 초안이 만들어집니다.</div>
+  <div class="steps no-print" id="stepsBar"></div>
+  <div class="card no-print" id="stepArea"></div>
+  <div id="resultArea"></div>
+</div>
+<div class="wizard-footer no-print" id="footerArea"></div>
+
+<script>
+const MODULES = {
+  chatbot: {
+    label: '커넥트톡',
+    desc: '챗봇, AI 상담 자동화 운영',
+    productivity: [
+      {key:'firstResponse', name:'1차 대응 시간', def:'접수 ~ 최초 응답 소요 시간', sla:'2H 이내', weight:10},
+      {key:'selfHandling', name:'자체 처리 시간', def:'운영팀 내부 종결 건 소요 시간', sla:'1일(8H) 이내', weight:10},
+      {key:'delivery', name:'답변 딜리버리', def:'2차(개발) 답변 수령 ~ 고객 안내', sla:'1일(8H) 이내', weight:10},
+      {key:'totalTime', name:'총 처리 시간', def:'접수 ~ 최종 답변 완료 전체 시간', sla:'고객 요청시간 이내', weight:10},
+    ],
+    productivityOptions: [
+      {key:'containment', name:'컨테인먼트율 (자동 해결율)', def:'사람 개입 없이 챗봇이 자체 해결한 문의 비율', sla:'65~80% 이상', weight:10, tag:'2026 신규', suggest:'always'}
+    ],
+    quality: [
+      {key:'collab', name:'유관부서 협업 만족도', detail:'이슈 해결을 위한 소통 태도 및 적극성 평가', weight:15},
+      {key:'qa', name:'상담/응대 품질 테스트(QA)', detail:'톤앤매너, 매뉴얼 준수, 답변 정확도 등 QA 점수', weight:15},
+    ],
+    penalty: '긴급/장애 대응 미흡 — 장애 전파 지연, 오안내 발생 시 (건당 -2점)',
+    performance: [
+      {key:'knowledgeGrowth', name:'챗봇 지식 성장 기여도', detail:'챗봇 시나리오 업데이트, AML 학습 및 효과', weight:10},
+      {key:'trendMgmt', name:'추이 관리', detail:'미탐/오탐 지속적인 개선활동 협업(가이드) — 감소하는 경향', weight:10},
+      {key:'report', name:'정기 리포트 완성도', detail:'정기 리포트(월간 봇 성능 등)의 적시 제출 및 내용의 정확성', weight:10},
+    ],
+    performanceOptions: [
+      {key:'security', name:'데이터 보안·취급 신뢰도', detail:'고객 개인정보/문의 데이터 취급 프로세스 준수 여부', weight:8, tag:'보안 권장', suggest:'sensitive'}
+    ]
+  },
+  web: {
+    label: '웹 서비스 운영',
+    desc: '웹사이트/웹서비스 운영·유지보수',
+    productivity: [
+      {key:'incidentResponse', name:'장애 대응 시간', def:'인시던트 접수 ~ 최초 대응', sla:'30분~1H 이내', weight:10},
+      {key:'bugfix', name:'버그 픽스 처리 시간', def:'버그 접수 ~ 수정 배포 완료', sla:'심각도별 SLA', weight:10},
+      {key:'requestReflect', name:'요청사항 반영 소요시간', def:'기능/개선 요청 접수 ~ 반영 완료', sla:'협의된 스프린트 주기 이내', weight:10},
+      {key:'release', name:'배포/릴리즈 처리', def:'배포 요청 ~ 실서비스 반영', sla:'협의된 배포 주기 이내', weight:10},
+    ],
+    productivityOptions: [
+      {key:'speed', name:'페이지 응답속도 유지', def:'목표 응답속도 기준 준수율', sla:'목표치 이내 95% 이상', weight:8, tag:'트래픽 민감 서비스', suggest:null}
+    ],
+    quality: [
+      {key:'collab', name:'유관부서 협업 만족도', detail:'기획/디자인/QA 협업 만족도', weight:15},
+      {key:'deployStability', name:'배포 안정성(QA)', detail:'배포 후 롤백/핫픽스 발생률, 테스트 커버리지 준수', weight:15},
+    ],
+    penalty: '장애 전파 지연, 서비스 다운타임 발생 시 (건당 -2점)',
+    performance: [
+      {key:'uptime', name:'가용률(Uptime) 유지', detail:'목표 가용률(예: 99.9%) 달성 여부', weight:10},
+      {key:'perfUx', name:'성능/UX 개선 기여도', detail:'로딩속도, 전환율 등 개선 활동과 효과', weight:10},
+      {key:'report', name:'정기 리포트 완성도', detail:'월간 운영 리포트의 적시 제출 및 정확성', weight:10},
+    ],
+    performanceOptions: [
+      {key:'security', name:'보안 취약점 대응', detail:'정기 보안 점검 및 취약점 조치 완료율', weight:8, tag:'보안 권장', suggest:'sensitive'},
+      {key:'accessibility', name:'웹 접근성 준수', detail:'접근성 가이드라인(WCAG 등) 준수 여부', weight:5, tag:'공공/금융 권장', suggest:null},
+    ]
+  },
+  crm: {
+    label: 'CRM 솔루션',
+    desc: 'CRM 솔루션 구축/운영',
+    productivity: [
+      {key:'inquiryResponse', name:'문의 응답 시간', def:'접수 ~ 최초 응답', sla:'4H 이내', weight:10},
+      {key:'customization', name:'설정/커스터마이징 처리시간', def:'요청 접수 ~ 반영 완료', sla:'협의된 기한 이내', weight:10},
+      {key:'syncBatch', name:'데이터 동기화/배치 처리시간', def:'배치 작업 시작 ~ 완료 및 검증', sla:'정해진 배치 윈도우 이내', weight:10},
+      {key:'totalTime', name:'총 처리 시간', def:'접수 ~ 최종 완료', sla:'고객 요청시간 이내', weight:10},
+    ],
+    productivityOptions: [],
+    quality: [
+      {key:'collab', name:'유관부서 협업 만족도', detail:'영업/마케팅/IT 협업 만족도', weight:15},
+      {key:'qa', name:'데이터 정합성 테스트(QA)', detail:'중복/누락/오류 데이터 발생률', weight:15},
+    ],
+    penalty: '데이터 유실·오류로 인한 업무 차질 발생 시 (건당 -2점)',
+    performance: [
+      {key:'dataIntegrity', name:'데이터 정합성/정확도 유지율', detail:'정기 점검 기준 데이터 품질 유지 수준', weight:10},
+      {key:'onboarding', name:'사용자 교육·온보딩 지원 기여도', detail:'신규 사용자 온보딩, 매뉴얼/교육 지원 활동', weight:10},
+      {key:'report', name:'정기 리포트 완성도', detail:'월간 활용 현황/리포트의 적시 제출 및 정확성', weight:10},
+    ],
+    performanceOptions: [
+      {key:'stability', name:'시스템 안정성(장애율)', detail:'장애 발생 빈도 및 평균 복구시간(MTTR)', weight:8, tag:null, suggest:null},
+      {key:'security', name:'데이터 보안·접근권한 관리', detail:'권한 관리 체계 및 접근 로그 관리 준수', weight:8, tag:'보안 권장', suggest:'sensitive'},
+    ]
+  },
+  app: {
+    label: '모바일 앱',
+    desc: '모바일 앱 운영',
+    productivity: [
+      {key:'issueResponse', name:'이슈 대응 시간', def:'크래시/버그 접수 ~ 최초 대응', sla:'심각도별 SLA (예: Critical 4H)', weight:10},
+      {key:'bugfix', name:'버그 픽스 처리시간', def:'접수 ~ 수정 배포 완료', sla:'심각도별 SLA 이내', weight:10},
+      {key:'release', name:'릴리즈 처리 시간', def:'릴리즈 요청 ~ 스토어 배포 완료', sla:'협의된 릴리즈 주기 이내', weight:10},
+      {key:'osUpdate', name:'OS 신버전 대응 소요시간', def:'OS 정식 출시 ~ 앱 호환성 확보', sla:'출시 후 2주 이내', weight:10},
+    ],
+    productivityOptions: [],
+    quality: [
+      {key:'collab', name:'유관부서 협업 만족도', detail:'기획/디자인/QA 협업 만족도', weight:15},
+      {key:'qa', name:'크래시율/버그 밀도(QA)', detail:'릴리즈 전 테스트 커버리지, 크래시율', weight:15},
+    ],
+    penalty: '심각한 크래시/스토어 반려 발생 시 (건당 -2점)',
+    performance: [
+      {key:'storeRating', name:'앱스토어 평점/리뷰 개선 기여도', detail:'평점 추이, 부정 리뷰 대응 활동', weight:10},
+      {key:'newFeature', name:'신규기능 반영 기여도', detail:'로드맵 대비 기능 반영 속도 및 완성도', weight:10},
+      {key:'report', name:'정기 리포트 완성도', detail:'월간 앱 성능/사용자 지표 리포트의 적시성·정확성', weight:10},
+    ],
+    performanceOptions: [
+      {key:'security', name:'데이터 보안·개인정보 처리 준수', detail:'앱 내 개인정보 처리 및 스토어 정책 준수 여부', weight:8, tag:'보안 권장', suggest:'sensitive'},
+    ]
+  }
+};
+
+const CONTRACT_PRESETS = {
+  fixed:   {productivity:40, quality:30, performance:30, name:'정액 운영 계약', label:'정액 운영 계약 (기본값)'},
+  outcome: {productivity:35, quality:25, performance:40, name:'성과 기반(Outcome-based) 계약', label:'성과 기반(Outcome-based) 계약 추천값'},
+  sla:     {productivity:45, quality:25, performance:30, name:'SLA 계약', label:'SLA 계약 추천값'},
+};
+
+let state = {
+  clientOrg:'', serviceName:'',
+  periodStart:'', periodEnd:'',
+  evaluator:'',
+  contractTypes:[],
+  serviceType:null,
+  enabledOptions:{},
+  includeRelationship:true,
+  weights:{productivity:40, quality:30, performance:30},
+  weightsTouched:false,
+};
+
+function primaryContractType(){
+  if(state.contractTypes.includes('outcome')) return 'outcome';
+  if(state.contractTypes.includes('sla')) return 'sla';
+  return 'fixed';
+}
+
+function contractLabel(){
+  if(!state.contractTypes.length) return '-';
+  return state.contractTypes.map(k=>CONTRACT_PRESETS[k].name).join(' + ');
+}
+
+let step = 0;
+const TOTAL_STEPS = 5;
+
+function el(html){ const d=document.createElement('div'); d.innerHTML=html; return d.firstElementChild; }
+
+function renderStepsBar(){
+  const bar = document.getElementById('stepsBar');
+  const current = Math.min(step+1, TOTAL_STEPS);
+  let dots = '';
+  for(let i=0;i<TOTAL_STEPS;i++){
+    let cls = 'step-dot';
+    if(i<step) cls += ' done';
+    if(i===step) cls += ' active';
+    dots += `<div class="${cls}"></div>`;
+  }
+  bar.innerHTML = `<div class="step-counter">STEP ${current} / ${TOTAL_STEPS}</div><div class="step-dots">${dots}</div>`;
+}
+
+const STEP_NEXT_HANDLERS = ['step1Next()','step2Next()','step3Next()','step4Next()'];
+const STEP_NEXT_LABELS = ['다음','다음','다음','조사지 생성'];
+
+function renderFooter(){
+  const footer = document.getElementById('footerArea');
+  if(step>=4){ footer.style.display='none'; footer.innerHTML=''; return; }
+  footer.style.display='block';
+  const prevBtn = step>0 ? `<button class="nav secondary" onclick="goStep(${step-1})">이전</button>` : `<span></span>`;
+  footer.innerHTML = `<div class="wizard-footer-inner">${prevBtn}<button class="nav primary" id="footerNextBtn" onclick="${STEP_NEXT_HANDLERS[step]}">${STEP_NEXT_LABELS[step]}</button></div>`;
+}
+
+function goStep(n){
+  step = Math.max(0, Math.min(TOTAL_STEPS-1, n));
+  render();
+}
+
+function render(){
+  renderStepsBar();
+  renderFooter();
+  const area = document.getElementById('stepArea');
+  const result = document.getElementById('resultArea');
+  result.innerHTML = '';
+  if(step===0){ area.style.display='block'; area.innerHTML=''; area.appendChild(renderStep1()); }
+  else if(step===1){ area.style.display='block'; area.innerHTML=''; area.appendChild(renderStep2()); }
+  else if(step===2){ area.style.display='block'; area.innerHTML=''; area.appendChild(renderStep3()); }
+  else if(step===3){ area.style.display='block'; area.innerHTML=''; area.appendChild(renderStep4()); }
+  else { area.style.display='none'; renderResult(result); }
+}
+
+function renderStep1(){
+  const c = el('<div></div>');
+  c.innerHTML = `
+    <h2>1. 고객사 정보</h2>
+    <div class="hint">평가표 상단에 들어갈 기본 정보를 입력합니다. 운영은 24시간 365일 기준입니다. (* 필수)</div>
+    <div class="row2">
+      <div><label>고객사명 *</label><input type="text" id="in_clientOrg" placeholder="예: 디케이테크인" value="${state.clientOrg}"></div>
+      <div><label>서비스명 *</label><input type="text" id="in_serviceName" placeholder="예: 커넥트톡" value="${state.serviceName}"></div>
+    </div>
+    <div class="row2">
+      <div><label>평가 기간 시작 *</label><input type="date" id="in_periodStart" value="${state.periodStart}"></div>
+      <div><label>평가 기간 종료 *</label><input type="date" id="in_periodEnd" value="${state.periodEnd}"></div>
+    </div>
+    <label>평가자명 * <span class="label-hint">(고객사에서 입력)</span></label>
+    <input type="text" id="in_evaluator" placeholder="고객사 담당자명을 입력하세요" value="${state.evaluator}">
+    <label>계약 * <span class="label-hint">(복수 선택 가능)</span></label>
+    <div class="check-row tight">
+      <input type="checkbox" id="ct_fixed" ${state.contractTypes.includes('fixed')?'checked':''}>
+      <label for="ct_fixed">정액 운영 계약</label>
+    </div>
+    <div class="check-row">
+      <input type="checkbox" id="ct_outcome" ${state.contractTypes.includes('outcome')?'checked':''}>
+      <label for="ct_outcome">성과 기반(Outcome-based) 계약</label>
+    </div>
+    <div class="check-row">
+      <input type="checkbox" id="ct_sla" ${state.contractTypes.includes('sla')?'checked':''}>
+      <label for="ct_sla">SLA 계약</label>
+    </div>
+    <div class="error" id="err1"></div>
+  `;
+  return c;
+}
+
+function step1Next(){
+  state.clientOrg = document.getElementById('in_clientOrg').value.trim();
+  state.serviceName = document.getElementById('in_serviceName').value.trim();
+  state.periodStart = document.getElementById('in_periodStart').value;
+  state.periodEnd = document.getElementById('in_periodEnd').value;
+  state.evaluator = document.getElementById('in_evaluator').value.trim();
+  state.contractTypes = ['fixed','outcome','sla'].filter(k => document.getElementById('ct_'+k).checked);
+
+  if(!state.clientOrg || !state.serviceName){
+    document.getElementById('err1').textContent = '고객사명과 서비스명은 필수입니다.';
+    return;
+  }
+  if(!state.periodStart || !state.periodEnd){
+    document.getElementById('err1').textContent = '평가 기간(시작/종료)을 입력해주세요.';
+    return;
+  }
+  if(!state.evaluator){
+    document.getElementById('err1').textContent = '평가자명을 입력해주세요.';
+    return;
+  }
+  if(state.contractTypes.length===0){
+    document.getElementById('err1').textContent = '계약을 최소 1개 이상 선택해주세요.';
+    return;
+  }
+  document.getElementById('err1').textContent = '';
+  if(!state.weightsTouched){
+    const preset = CONTRACT_PRESETS[primaryContractType()];
+    state.weights = {productivity:preset.productivity, quality:preset.quality, performance:preset.performance};
+  }
+  goStep(1);
+}
+
+function renderStep2(){
+  const c = el('<div></div>');
+  let cards = Object.keys(MODULES).map(key=>{
+    const m = MODULES[key];
+    const sel = state.serviceType===key ? 'selected' : '';
+    return `<div class="service-card ${sel}" onclick="selectService('${key}')">
+      <div class="name">${m.label}</div>
+      <div class="desc">${m.desc}</div>
+    </div>`;
+  }).join('');
+  c.innerHTML = `
+    <h2>2. 서비스 형태 선택</h2>
+    <div class="hint">평가 대상 서비스에 가장 가까운 형태를 선택하세요.</div>
+    <div class="service-grid">${cards}</div>
+    <div class="error" id="err2"></div>
+  `;
+  return c;
+}
+
+function selectService(key){
+  state.serviceType = key;
+  state.enabledOptions = {};
+  const m = MODULES[key];
+  [...m.productivity, ...m.quality, ...m.performance].forEach(it=>{
+    state.enabledOptions[it.key] = true;
+  });
+  [...m.productivityOptions, ...m.performanceOptions].forEach(opt=>{
+    state.enabledOptions[opt.key] = opt.suggest==='always';
+  });
+  render();
+}
+
+function step2Next(){
+  if(!state.serviceType){
+    document.getElementById('err2').textContent='서비스 형태를 선택해주세요.';
+    return;
+  }
+  goStep(2);
+}
+
+function renderStep3(){
+  const c = el('<div></div>');
+  const m = MODULES[state.serviceType];
+
+  function itemRow(o){
+    return `<div class="option-item">
+      <input type="checkbox" id="opt_${o.key}" ${state.enabledOptions[o.key]?'checked':''} onchange="toggleOption('${o.key}', this.checked)">
+      <div>
+        <div class="oname">${o.name} ${o.tag?`<span class="badge">${o.tag}</span>`:''}</div>
+        <div class="odesc">${o.def || o.detail} ${o.sla?`— 목표: ${o.sla}`:''}</div>
+      </div>
+    </div>`;
+  }
+
+  function sectionHtml(title, baseItems, optionItems){
+    const rows = [...baseItems, ...optionItems].map(itemRow).join('');
+    return `<h3>${title}</h3>${rows}`;
+  }
+
+  c.innerHTML = `
+    <h2>3. 평가 항목 선택</h2>
+    <div class="hint">이번 조사에 포함할 항목을 선택하세요. 기본적으로 모든 항목이 포함되어 있습니다.</div>
+    ${sectionHtml('생산성', m.productivity, m.productivityOptions)}
+    ${sectionHtml('품질', m.quality, [])}
+    ${sectionHtml('성과', m.performance, m.performanceOptions)}
+    <div class="check-row">
+      <input type="checkbox" id="in_relationship" ${state.includeRelationship?'checked':''}>
+      <label for="in_relationship">종합의견에 "재계약/추천 의향" 관계형 문항 추가 (권장)</label>
+    </div>
+    <div class="error" id="err3"></div>
+  `;
+  return c;
+}
+
+function toggleOption(key, checked){
+  state.enabledOptions[key] = checked;
+}
+
+function step3Next(){
+  state.includeRelationship = document.getElementById('in_relationship').checked;
+  const m = MODULES[state.serviceType];
+  const prodCount = [...m.productivity, ...m.productivityOptions].filter(o=>state.enabledOptions[o.key]).length;
+  const qualCount = m.quality.filter(o=>state.enabledOptions[o.key]).length;
+  const perfCount = [...m.performance, ...m.performanceOptions].filter(o=>state.enabledOptions[o.key]).length;
+  if(prodCount===0 || qualCount===0 || perfCount===0){
+    document.getElementById('err3').textContent = '각 영역(생산성/품질/성과)에 최소 1개 항목은 선택되어야 합니다.';
+    return;
+  }
+  goStep(3);
+}
+
+function renderStep4(){
+  const c = el('<div></div>');
+  const w = state.weights;
+  c.innerHTML = `
+    <h2>4. 배점 비중 조정</h2>
+    <div class="hint">기본값은 계약에 따라 자동 제안됩니다. 합계는 100이어야 합니다.</div>
+    <div class="weight-row"><span class="wlabel">생산성 (정량)</span><input type="number" id="w_productivity" value="${w.productivity}"></div>
+    <div class="weight-row"><span class="wlabel">품질 (정성)</span><input type="number" id="w_quality" value="${w.quality}"></div>
+    <div class="weight-row"><span class="wlabel">성과</span><input type="number" id="w_performance" value="${w.performance}"></div>
+    <div class="sum-indicator" id="sumIndicator"></div>
+    <button class="preset-btn" onclick="applyPreset()">${CONTRACT_PRESETS[primaryContractType()].label} 적용 (${CONTRACT_PRESETS[primaryContractType()].productivity}/${CONTRACT_PRESETS[primaryContractType()].quality}/${CONTRACT_PRESETS[primaryContractType()].performance})</button>
+  `;
+  setTimeout(()=>{
+    updateSumIndicator();
+    ['w_productivity','w_quality','w_performance'].forEach(id=>{
+      document.getElementById(id).addEventListener('input', updateSumIndicator);
+    });
+  }, 0);
+  return c;
+}
+
+function updateSumIndicator(){
+  const p = parseInt(document.getElementById('w_productivity').value)||0;
+  const q = parseInt(document.getElementById('w_quality').value)||0;
+  const f = parseInt(document.getElementById('w_performance').value)||0;
+  const sum = p+q+f;
+  const ind = document.getElementById('sumIndicator');
+  ind.textContent = `합계: ${sum} / 100`;
+  ind.className = 'sum-indicator ' + (sum===100 ? 'sum-ok' : 'sum-bad');
+  const btn = document.getElementById('footerNextBtn');
+  if(btn) btn.disabled = sum!==100;
+}
+
+function applyPreset(){
+  const preset = CONTRACT_PRESETS[primaryContractType()];
+  document.getElementById('w_productivity').value = preset.productivity;
+  document.getElementById('w_quality').value = preset.quality;
+  document.getElementById('w_performance').value = preset.performance;
+  updateSumIndicator();
+}
+
+function step4Next(){
+  state.weights = {
+    productivity: parseInt(document.getElementById('w_productivity').value)||0,
+    quality: parseInt(document.getElementById('w_quality').value)||0,
+    performance: parseInt(document.getElementById('w_performance').value)||0,
+  };
+  state.weightsTouched = true;
+  goStep(4);
+}
+
+function distribute(items, target){
+  const raw = items.reduce((s,i)=>s+i.weight,0);
+  if(raw===0 || items.length===0) return items.map(i=>({...i, points:0}));
+  let running=0;
+  return items.map((i,idx)=>{
+    let p;
+    if(idx===items.length-1){ p = target - running; }
+    else { p = Math.round(i.weight/raw*target); running+=p; }
+    return {...i, points:p};
+  });
+}
+
+function buildData(){
+  const m = MODULES[state.serviceType];
+  const prodItems = [...m.productivity, ...m.productivityOptions].filter(o=>state.enabledOptions[o.key]);
+  const perfItems = [...m.performance, ...m.performanceOptions].filter(o=>state.enabledOptions[o.key]);
+  const qualItems = m.quality.filter(o=>state.enabledOptions[o.key]);
+  return {
+    productivity: distribute(prodItems, state.weights.productivity),
+    quality: distribute(qualItems, state.weights.quality),
+    performance: distribute(perfItems, state.weights.performance),
+    penalty: m.penalty,
+    module: m,
+  };
+}
+
+function fmtDate(d){ return d || '____-__-__'; }
+
+function renderResult(container){
+  const data = buildData();
+  const total = state.weights.productivity + state.weights.quality + state.weights.performance;
+
+  let html = `<div class="result-actions no-print">
+    <button onclick="restart()">처음부터 다시</button>
+    <button onclick="goStep(3)">이전으로</button>
+    <button class="primary" onclick="generateUrl()">URL 생성</button>
+  </div>
+  <div id="urlResultBox" class="no-print"></div>`;
+
+  html += `<div class="preview">`;
+  html += `<h2>${state.clientOrg} ${state.serviceName} 운영 평가</h2>`;
+  html += `<table>
+    <tr><th>프로젝트명</th><td>${state.clientOrg} 운영 평가</td></tr>
+    <tr><th>평가 대상</th><td>${state.serviceName} (${data.module.label})</td></tr>
+    <tr><th>평가 기간</th><td>${fmtDate(state.periodStart)} ~ ${fmtDate(state.periodEnd)}</td></tr>
+    <tr><th>계약</th><td>${contractLabel()}</td></tr>
+    <tr><th>평가자</th><td>${state.evaluator}</td></tr>
+  </table>`;
+
+  html += `<h3>총점 배점 구조</h3><table>
+    <tr><th>구분</th><th>배점</th><th>획득 점수</th></tr>
+    <tr><td>생산성(정량)</td><td>${state.weights.productivity}</td><td></td></tr>
+    <tr><td>품질(정성)</td><td>${state.weights.quality}</td><td></td></tr>
+    <tr><td>성과</td><td>${state.weights.performance}</td><td></td></tr>
+    <tr><td><b>총점</b></td><td><b>${total}</b></td><td></td></tr>
+  </table>`;
+
+  html += `<h3>[생산성]</h3><table><tr><th>평가 항목</th><th>산정 방식</th><th>목표 수준(SLA)</th><th>배점</th><th>평가 결과</th></tr>`;
+  data.productivity.forEach(i=>{ html += `<tr><td>${i.name}</td><td>${i.def}</td><td>${i.sla}</td><td>${i.points}</td><td></td></tr>`; });
+  html += `<tr><td colspan="3"><b>합계</b></td><td><b>${state.weights.productivity}</b></td><td></td></tr></table>`;
+
+  html += `<h3>[품질]</h3><table><tr><th>평가 항목</th><th>상세 내용</th><th>배점</th><th>평가 결과</th></tr>`;
+  data.quality.forEach(i=>{ html += `<tr><td>${i.name}</td><td>${i.detail}</td><td>${i.points}</td><td></td></tr>`; });
+  html += `<tr><td>감점(Penalty)</td><td>${data.penalty}</td><td>-</td><td></td></tr>`;
+  html += `<tr><td colspan="2"><b>합계</b></td><td><b>${state.weights.quality}</b></td><td></td></tr></table>`;
+
+  html += `<h3>[성과]</h3><table><tr><th>평가 항목</th><th>상세 내용</th><th>배점</th><th>평가 결과</th></tr>`;
+  data.performance.forEach(i=>{ html += `<tr><td>${i.name}</td><td>${i.detail}</td><td>${i.points}</td><td></td></tr>`; });
+  html += `<tr><td colspan="2"><b>합계</b></td><td><b>${state.weights.performance}</b></td><td></td></tr></table>`;
+
+  html += `<h3>종합의견</h3><table>
+    <tr><th>강점(Keep)</th><td></td></tr>
+    <tr><th>개선점(Improve)</th><td></td></tr>`;
+  if(state.includeRelationship) html += `<tr><th>재계약/추천 의향</th><td></td></tr>`;
+  html += `</table>`;
+
+  html += `<h3>평가 등급</h3><div class="grade-list">
+    ☐ S (95점 이상): 최우수<br>☐ A (90점 이상): 우수<br>☐ B (80점 이상): 보통<br>☐ C (70점 이상): 미흡<br>☐ D (70점 미만): 저조
+  </div>`;
+
+  html += `<p class="signature">담당자 ${state.evaluator} (인)</p>`;
+  html += `</div>`;
+
+  container.innerHTML = html;
+}
+
+function getGsurveyBaseUrl(promptIfMissing){
+  let base = localStorage.getItem('gsurveyBaseUrl') || '';
+  if(!base && promptIfMissing){
+    base = prompt('배포된 응답 수집 웹앱 URL을 입력하세요\n(예: https://script.google.com/macros/s/xxxx/exec)\n최초 1회만 입력하면 저장됩니다.') || '';
+    if(base.trim()) localStorage.setItem('gsurveyBaseUrl', base.trim());
+  }
+  return (base||'').trim();
+}
+
+function changeGsurveyBaseUrl(){
+  localStorage.removeItem('gsurveyBaseUrl');
+  generateUrl();
+}
+
+function generateUrl(){
+  const base = getGsurveyBaseUrl(true);
+  if(!base) return;
+  const url = base.replace(/\/$/,'') + '?client=' + encodeURIComponent(state.clientOrg) + '&type=' + encodeURIComponent(state.serviceType);
+  const box = document.getElementById('urlResultBox');
+  box.innerHTML = `
+    <label>고객사 전달용 URL</label>
+    <div class="inline-row">
+      <input type="text" id="generatedUrl" value="${url}" readonly>
+      <button class="nav secondary" onclick="copyGeneratedUrl()">복사</button>
+    </div>
+    <div class="hint url-hint">웹앱 URL을 바꾸려면 <a href="#" onclick="changeGsurveyBaseUrl();return false;">여기</a>를 클릭하세요.</div>
+  `;
+}
+
+function copyGeneratedUrl(){
+  const input = document.getElementById('generatedUrl');
+  navigator.clipboard.writeText(input.value).then(()=>alert('URL이 복사되었습니다.'));
+}
+
+function restart(){
+  state = {
+    clientOrg:'', serviceName:'',
+    periodStart:'', periodEnd:'',
+    evaluator:'',
+    contractTypes:[],
+    serviceType:null, enabledOptions:{}, includeRelationship:true,
+    weights:{productivity:40, quality:30, performance:30}, weightsTouched:false,
+  };
+  goStep(0);
+}
+
+render();
+</script>
+</body>
+</html>
