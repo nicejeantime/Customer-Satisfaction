@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html>
+<head>
+<base target="_top">
+<meta charset="UTF-8">
+<style>
+  :root{
+    --accent:#3366FF; --accent-light:#F4F9FF; --accent-hover:#ABC1D1;
+    --bg:#F7F7F7; --card:#FFFFFF; --border:#DDDDDD;
+    --text:#191919; --muted:#595959; --placeholder:#949494;
+    --error:#F4651E;
+    --font-family:system-ui,-apple-system,'Helvetica Neue','Apple SD Gothic Neo','Segoe UI',Roboto,Arial,'NotoSans','Open Sans','Malgun Gothic','맑은 고딕',sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:var(--font-family);background:var(--bg);color:var(--text);}
+  .wrap{max-width:960px;margin:0 auto;padding:32px 20px 80px;}
+  h1{font-size:20px;line-height:29px;font-weight:700;margin:0 0 4px;}
+  .subtitle{color:var(--muted);font-size:13px;margin-bottom:24px;}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+  th,td{padding:10px 12px;text-align:left;font-size:13px;border-bottom:1px solid var(--border);}
+  th{background:var(--bg);font-weight:700;}
+  tr:last-child td{border-bottom:none;}
+  tr.client-row{cursor:pointer;}
+  tr.client-row:hover{background:var(--accent-light);}
+  .score-bar{display:flex;align-items:center;gap:8px;}
+  .score-bar .track{flex:1;height:8px;background:var(--border);border-radius:4px;overflow:hidden;}
+  .score-bar .fill{height:100%;background:var(--accent);}
+  .score-bar .num{font-weight:700;width:34px;text-align:right;}
+  .detail-row{display:none;}
+  .detail-row.open{display:table-row;}
+  .detail-row td{background:var(--bg);}
+  .response-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:8px;font-size:12.5px;}
+  .response-card .meta{color:var(--muted);margin-bottom:6px;}
+  .response-card .field{margin-top:4px;}
+  .response-card .field b{font-weight:600;}
+  .items-grid{margin-top:8px;border-top:1px solid var(--border);padding-top:8px;}
+  .item-row{display:flex;align-items:center;gap:8px;padding:3px 0;}
+  .item-row .item-name{flex:1;color:var(--text);}
+  .item-row .score-bar{width:120px;}
+  .empty{padding:40px;text-align:center;color:var(--muted);}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>고객 만족도 대시보드</h1>
+  <div class="subtitle">고객사별 응답을 종합한 현황입니다. 행을 클릭하면 개별 응답을 볼 수 있습니다.</div>
+  <div id="root"></div>
+</div>
+
+<script>
+const DATA = <?!= dataJson ?>;
+
+function fmtScore(v){ return v===null || v===undefined ? '-' : v.toFixed(1); }
+
+function scoreBar(v, max){
+  const pct = v===null || v===undefined ? 0 : Math.min(100, (v/max)*100);
+  return `<div class="score-bar"><div class="track"><div class="fill" style="width:${pct}%"></div></div><div class="num">${fmtScore(v)}</div></div>`;
+}
+
+function render(){
+  const root = document.getElementById('root');
+  if(!DATA.length){
+    root.innerHTML = '<div class="empty">아직 응답이 없습니다.</div>';
+    return;
+  }
+  let rows = '';
+  DATA.forEach((c, idx)=>{
+    rows += `<tr class="client-row" onclick="toggleDetail(${idx})">
+      <td>${c.client}</td>
+      <td>${c.responseCount}</td>
+      <td>${scoreBar(c.avgOverall, 5)}</td>
+      <td>${scoreBar(c.avgRelationship, 5)}</td>
+      <td>${c.latestService || ''}</td>
+      <td>${c.latestPeriod || ''}</td>
+    </tr>
+    <tr class="detail-row" id="detail-${idx}"><td colspan="6">${responseCards(c.responses)}</td></tr>`;
+  });
+  root.innerHTML = `<table>
+    <tr><th>고객사</th><th>응답 수</th><th>평균 종합점수(5점)</th><th>평균 재계약의향(5점)</th><th>최근 서비스형태</th><th>최근 평가기간</th></tr>
+    ${rows}
+  </table>`;
+}
+
+function itemsTable(items){
+  if(!items || !items.length) return '';
+  return `<div class="items-grid">${items.map(it=>`
+    <div class="item-row"><span class="item-name">${it.name}</span>${scoreBar(it.score, 5)}</div>
+  `).join('')}</div>`;
+}
+
+function responseCards(responses){
+  return responses.slice().reverse().map(r=>`
+    <div class="response-card">
+      <div class="meta">${r.period || ''} · ${r.service || ''} · 종합 ${fmtScore(r.overall)} / 재계약의향 ${fmtScore(r.relationship)}</div>
+      ${r.strengths ? `<div class="field"><b>강점:</b> ${r.strengths}</div>` : ''}
+      ${r.improvements ? `<div class="field"><b>개선점:</b> ${r.improvements}</div>` : ''}
+      ${itemsTable(r.items)}
+    </div>
+  `).join('') || '<div class="empty">상세 응답 없음</div>';
+}
+
+function toggleDetail(idx){
+  document.getElementById('detail-'+idx).classList.toggle('open');
+}
+
+render();
+</script>
+</body>
+</html>

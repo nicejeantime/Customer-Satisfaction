@@ -1,20 +1,21 @@
 /**
- * 운영서비스 만족도 조사 - 커스텀 웹페이지(Apps Script Web App) + 구글 시트 응답 수집
+ * 운영서비스 만족도 조사 - 커스텀 웹페이지(Apps Script Web App) + 구글 시트 응답 수집 + 대시보드
  *
- * 배포 방법:
+ * 배포 방법 (자세한 순서는 설정가이드.md 참고):
  * 1) script.google.com → 새 프로젝트
  * 2) 이 파일 내용을 "Code.gs"에 붙여넣기
  * 3) 파일 추가 → HTML → 이름을 정확히 "Index"로 지정 → Index.html 내용 붙여넣기
- * 4) 배포 > 새 배포 > 유형: 웹 앱
- *      - 실행 계정: 나
- *      - 액세스 권한: 링크가 있는 모든 사용자
- * 5) 배포 후 생성되는 웹앱 URL을 확인 (예: https://script.google.com/macros/s/XXXX/exec)
- * 6) 고객사별로 아래처럼 쿼리 파라미터를 붙여 전달
- *      {웹앱URL}?client=한국%20암웨이&type=chatbot
- *      type 값: chatbot / web / crm / app (모르면 생략 가능, 응답자가 직접 선택)
- * 7) 응답은 최초 제출 시 자동 생성되는 구글 시트에 실시간으로 쌓임 (실행 로그 또는
- *    스크립트 속성에서 시트 링크 확인 가능 — getSheetUrl 함수 실행)
+ * 4) 파일 추가 → HTML → 이름을 정확히 "Dashboard"로 지정 → Dashboard.html 내용 붙여넣기
+ * 5) 아래 DASHBOARD_DOMAIN 값을 실제 회사 구글 워크스페이스 도메인으로 수정
+ * 6) 배포 두 개를 따로 만든다 (배포 > 새 배포):
+ *      - 설문용: 액세스 권한 "링크가 있는 모든 사용자" → 고객사에 보내는 URL
+ *      - 대시보드용: 액세스 권한 "○○○(도메인) 내 모든 사용자" → 사내 전용 URL
+ * 7) 설문 URL: {설문용 배포 URL}?client=고객사명&type=chatbot|web|crm|app
+ *    대시보드 URL: {대시보드용 배포 URL}?view=dashboard
+ * 8) 응답은 최초 제출 시 자동 생성되는 구글 시트에 실시간으로 쌓임 (getSheetUrl 함수 실행해서 링크 확인)
  */
+
+const DASHBOARD_DOMAIN = 'dktechin.com'; // 대시보드 접근을 허용할 회사 구글 워크스페이스 도메인
 
 const SERVICE_LABELS = {
   chatbot: '커넥트톡',
@@ -73,6 +74,9 @@ const MODULES_DATA = {
 };
 
 function doGet(e) {
+  if (e && e.parameter && e.parameter.view === 'dashboard') {
+    return renderDashboard();
+  }
   const tmpl = HtmlService.createTemplateFromFile('Index');
   tmpl.clientName = (e && e.parameter && e.parameter.client) || '';
   tmpl.presetType = (e && e.parameter && e.parameter.type) || '';
@@ -82,6 +86,81 @@ function doGet(e) {
     .setTitle('2026년 운영서비스 만족도 조사')
     .addMetaTag('viewport', 'width=device-width, initial-scale=1')
     .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+}
+
+function renderDashboard() {
+  const email = Session.getActiveUser().getEmail();
+  const domain = email.split('@')[1] || '';
+  if (!email || domain !== DASHBOARD_DOMAIN) {
+    return HtmlService.createHtmlOutput(
+      '<div style="font-family:sans-serif;padding:40px;text-align:center;">' +
+      '<h2>접근 권한이 없습니다</h2>' +
+      '<p>' + DASHBOARD_DOMAIN + ' 소속 구글 계정으로 로그인 후 다시 시도해주세요.</p>' +
+      '</div>'
+    );
+  }
+  const tmpl = HtmlService.createTemplateFromFile('Dashboard');
+  tmpl.dataJson = JSON.stringify(getDashboardData());
+  return tmpl.evaluate()
+    .setTitle('고객 만족도 대시보드')
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+function getDashboardData() {
+  const sheet = getOrCreateSheet();
+  const values = sheet.getDataRange().getValues();
+  const rows = values.slice(1);
+  const defs = getColumnDefs();
+
+  const scoreDefs = [];
+  defs.forEach(function (d, i) { if (d.kind === 'score') scoreDefs.push({ idx: i, name: d.itemName }); });
+  const idx = {};
+  ['timestamp', 'client', 'period', 'serviceLabel', 'relationship', 'strengths', 'improvements'].forEach(function (kind) {
+    idx[kind] = defs.findIndex(function (d) { return d.kind === kind; });
+  });
+
+  const byClient = {};
+  rows.forEach(function (row) {
+    const client = row[idx.client];
+    if (!client) return;
+    const items = scoreDefs
+      .map(function (sd) { return { name: sd.name, score: row[sd.idx] }; })
+      .filter(function (it) { return it.score !== '' && it.score !== null && !isNaN(it.score); })
+      .map(function (it) { return { name: it.name, score: Number(it.score) }; });
+    const overall = items.length ? items.reduce(function (a, it) { return a + it.score; }, 0) / items.length : null;
+    const relRaw = row[idx.relationship];
+    const relationship = (relRaw !== '' && relRaw !== null && !isNaN(relRaw)) ? Number(relRaw) : null;
+
+    if (!byClient[client]) byClient[client] = { client: client, responses: [] };
+    byClient[client].responses.push({
+      timestamp: row[idx.timestamp] instanceof Date ? row[idx.timestamp].toISOString() : String(row[idx.timestamp]),
+      period: row[idx.period],
+      service: row[idx.serviceLabel],
+      overall: overall,
+      relationship: relationship,
+      strengths: row[idx.strengths],
+      improvements: row[idx.improvements],
+      items: items,
+    });
+  });
+
+  const avg = function (nums) { return nums.length ? nums.reduce(function (a, b) { return a + b; }, 0) / nums.length : null; };
+
+  return Object.keys(byClient).map(function (key) {
+    const c = byClient[key];
+    const overalls = c.responses.map(function (r) { return r.overall; }).filter(function (v) { return v !== null; });
+    const rels = c.responses.map(function (r) { return r.relationship; }).filter(function (v) { return v !== null; });
+    const last = c.responses[c.responses.length - 1];
+    return {
+      client: c.client,
+      responseCount: c.responses.length,
+      avgOverall: avg(overalls),
+      avgRelationship: avg(rels),
+      latestService: last.service,
+      latestPeriod: last.period,
+      responses: c.responses,
+    };
+  }).sort(function (a, b) { return (b.avgOverall || 0) - (a.avgOverall || 0); });
 }
 
 function getHalfYearLabel(date) {
